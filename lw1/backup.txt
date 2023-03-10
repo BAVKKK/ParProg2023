@@ -1,0 +1,52 @@
+#define HAVE_STRUCT_TIMESPEC
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include <pthread.h>
+#include <chrono>
+
+using namespace std;
+
+/* Функция, которую будет исполнять созданный поток */
+void* thread_job(void* arg)
+{
+    int *param = (int *) arg;
+	cout << "Thread number: " << *param << " is running..." << endl;
+	return NULL;
+
+}
+
+int main(int argc, char *argv[])
+{
+	// Определяем переменные: идентификатор потока и код ошибки
+	pthread_t thread;
+	int err;
+    int param;
+    if(argc != 2) {
+        cout << "Wrong number of arguments" << endl;
+        exit(-1);
+    }
+    param = atoi (argv[1]);
+
+	// Создаём поток
+    for (int i = 1; i <= param; i++)
+    {
+        err = pthread_create(&thread, NULL, thread_job, (void *) &i);
+        // Если при создании потока произошла ошибка, выводим
+        // сообщение об ошибке и прекращаем работу программы
+        if (err != 0) {
+            cout << "Cannot create a thread: " << strerror(err) << endl;
+            exit(-1);
+	    }
+        // Ожидаем завершения работы потока
+        pthread_join(thread, NULL);
+        if (err != 0) {
+            cout << "Cannot join a thread: " << strerror(err) << endl;
+            exit (-1);
+        }
+    }
+	
+	// // Ожидаем завершения созданного потока перед завершением
+	// // работы программы
+	// pthread_exit(NULL);
+}
