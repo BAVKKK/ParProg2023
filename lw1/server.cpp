@@ -16,7 +16,7 @@
 using namespace std;
  
 // Размер символьного буфера для ответа клиенту
-const unsigned int BUF = 256;
+const unsigned int BUF = 128;
  
 struct request_handler_params{
     // Дескриптор сокета клиента
@@ -59,7 +59,7 @@ void* request_handler(void* arg) {
     build_response_str(response_buf, params->request_number);       
     
     // Отправляем строку пользователю
-    write(params->socket_desk, response_buf, strlen(response_buf) * sizeof(char)); /*-1:'\0'*/
+    write(params->socket_desk, response_buf, BUF * sizeof(char)); /*-1:'\0'*/
  
     shutdown(params->socket_desk, SHUT_WR);
  
