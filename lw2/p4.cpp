@@ -11,7 +11,7 @@
 
 using namespace std;
 
-#define syn_type 0
+#define syn_type 0 // 1 - спинлок, 2 - мьютех
 #define err_exit(code, str)                   \
     {                                         \
         cerr << str << ": " << strerror(code) \
@@ -25,7 +25,6 @@ int task_list[TASKS_COUNT]; // Массив заданий
 int current_task = 0;       // Указатель на текущее задание
 pthread_mutex_t mutex;      // Мьютекс
 pthread_spinlock_t lock;    // Спинлок
-// int syn_type = 1;           // Тип синхронизации
 
 void do_task()
 {

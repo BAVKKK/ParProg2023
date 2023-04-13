@@ -1,8 +1,9 @@
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
-#include <unistd.h>
+#include <cstring>
 #include <pthread.h>
+#include <unistd.h>
+
 
 using namespace std;
 
@@ -13,124 +14,139 @@ using namespace std;
         exit(EXIT_FAILURE);                   \
     }
 
-enum task_state
-{
-    EMPTY,
-    FULL
-};
-task_state state = EMPTY;
 
+bool isSignal = false;
 const int TASKS_COUNT = 10;
+int task_list[TASKS_COUNT];
 int current_task = 0;
+pthread_mutex_t mutex, cond_mutex;
 
-pthread_mutex_t mutex;
-pthread_cond_t cond;
 
-void *producer(void *arg)
+void signal()
 {
     int err;
-    
-    while (current_task < TASKS_COUNT)
+    err = pthread_mutex_lock(&cond_mutex);
+    if (err != 0)
     {
-        // Захватываем мьютекс и ожидаем решения задачи
-        err = pthread_mutex_lock(&mutex);
-        if (err != 0)
-            err_exit(err, "Cannot lock mutex");
-
-        while (state == FULL)
-        {
-            err = pthread_cond_wait(&cond, &mutex);
-            if (err != 0)
-                err_exit(err, "Cannot wait on condition variable");
-        }
-
-        // Получен сигнал, что задачи решены
-        // Добавляем новую задачу
-        current_task++;
-        cout << "Add task " << current_task << endl;
-        state = FULL;
-
-        // Посылаем сигнал, что появилась новая задача
-        err = pthread_cond_signal(&cond);
-        if (err != 0)
-            err_exit(err, "Cannot send signal");
-
-        err = pthread_mutex_unlock(&mutex);
-        if (err != 0)
-            err_exit(err, "Cannot unlock mutex");
+        err_exit(err, "Cannot lock mutex\n"); 
     }
 
-    return NULL;
+    isSignal = true;
+    err = pthread_mutex_unlock(&cond_mutex);
+    if (err != 0)
+    {
+        err_exit(err, "Cannot unlock mutex\n"); 
+    }
 }
-void *solving(void *arg)
+
+
+void wait()
 {
     int err;
-    
-    while (current_task < TASKS_COUNT)
+    bool blocked = true;
+    while(blocked)
     {
-        // Захватываем мьютекс и ожидаем появления нерешённых задач
-
-        err = pthread_mutex_lock(&mutex);
+        err = pthread_mutex_lock(&cond_mutex);
         if (err != 0)
-            err_exit(err, "Cannot lock mutex");
-
-        while (state == EMPTY)
         {
-            err = pthread_cond_wait(&cond, &mutex);
-            if (err != 0)
-                err_exit(err, "Cannot wait on condition variable");
+            err_exit(err, "Cannot lock mutex\n"); 
         }
-
-        // Получен сигнал, что появилась новая задача
-        // Решаем её
-        cout << "Task " << current_task << " ... ";
-        sleep(1);
-        cout << "done" << endl;
-        state = EMPTY;
-
-        err = pthread_cond_signal(&cond);
+        if(isSignal == true){
+            blocked = isSignal = false;
+        }
+        err = pthread_mutex_unlock(&cond_mutex);
         if (err != 0)
-            err_exit(err, "Cannot send signal");
-
-        err = pthread_mutex_unlock(&mutex);
-        if (err != 0)
-            err_exit(err, "Cannot unlock mutex");
+        {
+            err_exit(err, "Cannot unlock mutex\n"); 
+        }
     }
-
-    return NULL;
 }
+
+
+void check_error(int err){
+    if (err != 0)
+    {
+        cout << strerror(err) << endl;
+        exit(-1);
+    }
+}
+
+
+void *cond_job(void *arg)
+{
+    int err;
+    cout << "mutex lock" << endl;
+    err = pthread_mutex_lock(&mutex);
+    if (err != 0)
+    {
+        err_exit(err, "Cannot lock mutex\n"); 
+    }
+   
+    cout << "waiting..." << endl;
+    wait();
+    cout << "signal recieved" << endl;
+
+
+    cout << "mutex unlock" << endl;
+    err = pthread_mutex_unlock(&mutex);
+    if (err != 0)
+    {
+        err_exit(err, "Cannot unlock mutex\n"); 
+    }
+}
+
+
+void *thread_job(void *arg)
+{
+    cout << "sleep 2 sec" << endl;
+    sleep(2);
+    cout << "send signal" << endl;
+    signal();  
+}
+
+
 int main()
 {
     int err;
+    pthread_t thread1, thread2;
 
-    pthread_t thread1, thread2; // Идентификаторы потоков
-
-    // Инициализируем мьютекс и условную переменную
-
-    err = pthread_cond_init(&cond, NULL);
+    for (int i = 0; i < TASKS_COUNT; ++i)
+        task_list[i] = rand() % TASKS_COUNT;
+    
+    err = pthread_mutex_init(&mutex, NULL) ;
     if (err != 0)
-        err_exit(err, "Cannot initialize condition variable");
+    {
+        err_exit(err, "Cannot initialize mutex\n"); 
+    }
 
-    err = pthread_mutex_init(&mutex, NULL);
+    err = pthread_create(&thread1, NULL, thread_job, NULL) ;
     if (err != 0)
-        err_exit(err, "Cannot initialize mutex");
+    {
+        err_exit(err, "Cannot create thread 1\n"); 
+    }
 
-    // Создаём потоки
-
-    err = pthread_create(&thread1, NULL, producer, NULL);
+    err = pthread_create(&thread2, NULL, cond_job, NULL)  ;
     if (err != 0)
-        err_exit(err, "Cannot create thread 1");
+    {
+        err_exit(err, "Cannot create thread 2\n"); 
+    }
 
-    err = pthread_create(&thread2, NULL, solving, NULL);
+    err =  pthread_join(thread1, NULL);
     if (err != 0)
-        err_exit(err, "Cannot create thread 2");
+    {
+        err_exit(err, "Cannot join thread 1\n"); 
+    }
 
-    // Дожидаемся завершения потоков
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
-
-    // Освобождаем ресурсы, связанные с мьютексом
-    // и условной переменной
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&cond);
+    err =  pthread_join(thread2, NULL);
+    if (err != 0)
+    {
+        err_exit(err, "Cannot join thread 2\n"); 
+    }
+    
+    
+    err =  pthread_mutex_destroy(&mutex);
+    if (err != 0)
+    {
+        err_exit(err, "Cannot join thread 2\n"); 
+    }
 }

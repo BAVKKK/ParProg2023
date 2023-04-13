@@ -3,6 +3,7 @@
         "*.embeddedhtml": "html",
         "algorithm": "cpp",
         "chrono": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "system_error": "cpp"
     }
 }

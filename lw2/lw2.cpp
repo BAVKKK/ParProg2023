@@ -23,7 +23,7 @@ pthread_mutex_t mutex;      // Мьютекс
 void do_task(int task_no, int thread_n)
 {
     int n = 0;
-    sleep(0.5);
+    //sleep(0.5);
     cout << "Thread " << thread_n << ". Task " << task_no << "." << endl;
 
     for (int i = 0; i < 10000000; i++)
