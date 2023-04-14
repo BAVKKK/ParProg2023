@@ -70,7 +70,7 @@ void *thread_job(void *arg)
                           " has been processed</body></html>\r\n";
 
         read(client_fd, &recieve, 500);
-        write(client_fd, response.c_str(), response.length()); /*-1:'\0'*/
+        write(client_fd, response.c_str(), 256); /*-1:'\0'*/
 
         close(client_fd);
     }
@@ -125,14 +125,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    listen(sock, 100);
+    listen(sock, 20000);
 
     while (1)
     {
 
         client_fd = accept(sock, (struct sockaddr *)&cli_addr, &sin_len);
 
-        if (client_fd == -1)
+        if (client_fd == -1)  
         {
             perror("Can't accept");
             continue;

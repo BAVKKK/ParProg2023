@@ -29,7 +29,7 @@ int main()
             sum += a[i];
        }
 
-        #pragma omp critical (sum)
+        #pragma omp critical (cout)
         cout << "Thread " << id << ", partial sum = " << sum << endl;
 
     }
