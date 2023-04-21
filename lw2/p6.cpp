@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <ctime>
 #include <map>
+#include <chrono>
 
 using namespace std;
 
@@ -86,8 +87,9 @@ void *reduce_job(void *arg)
         err = pthread_spin_lock(&lock);
         if (err != 0)
             err_exit(err, "Cannot lock spinlock");
-
+    #ifdef COUT
         cout << item->first << ": " << item->second << endl;
+    #endif
         res[item->first] += item->second;
 
         // Освобождаем спинлок
@@ -145,7 +147,7 @@ int main(int argc, char *argv[])
     // функция MAP (обрабатываем полученные данные)
 
     int col = size / threads_number;
-
+    auto begin = chrono::steady_clock::now();
     for (int i = 0; i < threads_number; i++)
     {
         params[i].col = col;
@@ -166,9 +168,16 @@ int main(int argc, char *argv[])
         pthread_join(threads[i], NULL);
     }
 
+    auto end = chrono::steady_clock::now();
+    auto f_time = chrono::duration_cast<std::chrono::microseconds>(end - begin);
+    cout << "Map Time : " << f_time.count() << "ms" << endl;
+
+
+    
     // ---------------------------------
     // функция REDUCE (финальная обработка данных)
 
+    auto begin_r = chrono::steady_clock::now();
     for (int i = 0; i < threads_number; i++)
     {
         // Создаём i-тый поток
@@ -181,19 +190,25 @@ int main(int argc, char *argv[])
         }
     }
 
+
     // Ожидаем завершения созданных потоков
     for (int i = 0; i < threads_number; i++)
     {
         pthread_join(threads[i], NULL);
     }
 
+    auto end_r = chrono::steady_clock::now();
+    auto f_r_time = chrono::duration_cast<std::chrono::microseconds>(end_r - begin_r);
+    cout << "Reduce Time : " << f_r_time.count() << "ms" << endl;
+
+    #ifdef COUT
     cout << "\nPeзyльтaт: " << endl;
 
     for (int i = 0; i < 10; i++)
     {
         cout << i << ": " << res[i] << endl;
     }
-
+    #endif
     pthread_spin_destroy(&lock);
     pthread_exit(NULL);
 }

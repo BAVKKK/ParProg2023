@@ -12,6 +12,8 @@
 #include <cstring>
 #include <pthread.h>
 #include <queue>
+#include <chrono>
+
 
 #define err_exit(code, str)                   \
     {                                         \
@@ -43,6 +45,7 @@ pthread_cond_t cond;           // условная переменная
 
 void *thread_job(void *arg)
 {
+    double sum = 0;
     while (true)
     {
         int err = pthread_mutex_lock(&mutex);
@@ -53,7 +56,7 @@ void *thread_job(void *arg)
             if (err != 0)
                 err_exit(err, "Cannot wait on condition variable");
         }
-
+        auto begin = chrono::steady_clock::now();
         int client_fd = client_q.front().clientFd; //  индекс потока
         int number = client_q.front().number;      //  индекс потока
 
@@ -72,6 +75,10 @@ void *thread_job(void *arg)
         read(client_fd, &recieve, 500);
         write(client_fd, response.c_str(), 256); /*-1:'\0'*/
 
+        auto end = chrono::steady_clock::now();
+        auto f_time = chrono::duration_cast<std::chrono::microseconds>(end - begin);
+        sum += f_time.count();
+        cout << "Time for request : " << sum << "ms" << '\n';
         close(client_fd);
     }
 }
