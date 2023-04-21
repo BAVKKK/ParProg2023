@@ -77,7 +77,6 @@ void *thread_job(void *arg)
 
         auto end = chrono::steady_clock::now();
         auto f_time = chrono::duration_cast<std::chrono::microseconds>(end - begin);
-        sum += f_time.count();
         cout << "Time for request : " << sum << "ms" << '\n';
         close(client_fd);
     }
