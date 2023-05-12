@@ -27,7 +27,6 @@ void check(T err, const char* const func, const char* const file, const int line
 __global__ void mm_kernel(int const* mat_1, int const* mat_2, int* mat_3, size_t m,
                           size_t n, size_t p)
 {
-    // Каждый поток вычисляет одну ячейку
     size_t i = blockIdx.y * blockDim.y + threadIdx.y;
     size_t j = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -167,8 +166,8 @@ int main()
 
     size_t num_measurement_tests = 100;
 
-    float mm_cuda_int32_latency = measure_latency_mm_cuda(m, n, p, num_measurement_tests);
+    float mm_cuda_latency = measure_latency_mm_cuda(m, n, p, num_measurement_tests);
 
     std::cout << "Matrix Multiplication CUDA" << '\n';
-    std::cout << "GPU: " << std::fixed << std::setprecision(5) << mm_cuda_int32_latency << " ms" << '\n';
+    std::cout << "GPU: " << std::fixed << std::setprecision(5) << mm_cuda_latency << " ms" << '\n';
 }
