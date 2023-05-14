@@ -55,8 +55,7 @@ void mm_cuda(int const* mat_1, int const* mat_2, int* mat_3, size_t m, size_t n,
                                   static_cast<double>(threads_per_block.x));
     blocks_per_grid.y = std::ceil(static_cast<double>(m) /
                                   static_cast<double>(threads_per_block.y));
-    mm_kernel<<<blocks_per_grid, threads_per_block>>>(mat_1, mat_2, mat_3, m, n,
-                                                      p);
+    mm_kernel<<<blocks_per_grid, threads_per_block>>>(mat_1, mat_2, mat_3, m, n, p);
 }
 
 void crate_rand_matr(int* matr, size_t n)
@@ -90,23 +89,23 @@ float measure_latency_mm_cuda(size_t m, size_t n, size_t p, size_t num_tests)
     crate_rand_matr(mat_1, m*n);
     crate_rand_matr(mat_2, n*p);
 
+    checkCuda(cudaEventRecord(startEvent, 0));
     checkCuda(cudaMemcpy(d_mat_1, mat_1, m*n * sizeof(int), cudaMemcpyHostToDevice));
     checkCuda(cudaMemcpy(d_mat_2, mat_2, n*p * sizeof(int), cudaMemcpyHostToDevice));
 #ifdef CHECK_TIME
-for (int i_test = 0; i_test < 10; i_test++)
-{
+// for (int i_test = 0; i_test < 10; i_test++)
+// {
     float tmp_time = 0.0f;
-    checkCuda(cudaEventRecord(startEvent, 0));
-
     for (size_t i = 0; i < num_tests; ++i)
     {
         mm_cuda(d_mat_1, d_mat_2, d_mat_3, m, n, p);
     }
     checkCuda(cudaEventRecord(stopEvent, 0));
     checkCuda(cudaEventSynchronize(stopEvent));
+    checkCuda(cudaMemcpy(mat_3, d_mat_3, m*p * sizeof(int), cudaMemcpyDeviceToHost));
     checkCuda(cudaEventElapsedTime(&tmp_time, startEvent, stopEvent));
     time+=tmp_time/num_tests;
-}
+// }
 #endif
 
 #ifdef MATRIX_MULTY
@@ -151,7 +150,8 @@ for (int i_test = 0; i_test < 10; i_test++)
     checkCuda(cudaFree(d_mat_2));
     checkCuda(cudaFree(d_mat_3));
 
-    float latency = time / 10;
+    // float latency = time / 10;
+    float latency = time;
 
     return latency;
 }
